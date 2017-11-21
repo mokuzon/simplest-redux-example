@@ -66,20 +66,14 @@ function counter(state = { count: 0 }, action) {
 }
 
 function clock(state = { time: 'YYYY-MM-DD' }, action) {
+  console.log(action)
   switch (action.type) {
-    case 'getjson':
-      console.log(action)
-      return { time: time }
+    case 'gettime':
+      return { time: action.body }
     default:
       return state
   }
 }
-
-async function callAPI() {
-  const response = await request.get('http://date.jsontest.com/')
-  return response
-}
-
 
 const reducer = combineReducers({
                   clock,
@@ -96,15 +90,14 @@ const store = createStore(
 
 function checkoutSuccess(body) {
   return {
-    type: 'getjson',
+    type: 'gettime',
     body
   }
 }
 
-function* runCurrnetTimeRequest(action) {
+function* runCurrentTimeRequest(action) {
   const response = yield call(request.get, 'http://date.jsontest.com/')
-  console.log(response)
-  yield put(checkoutSuccess(body))
+  yield put(checkoutSuccess(response.body.time))
 }
 
 function* handleCurrentTime() {
@@ -112,11 +105,10 @@ function* handleCurrentTime() {
 }
 
 function* rootSaga() {
-  //yield fork(handleCurretTime)
+  yield fork(handleCurrentTime)
 }
 
 sagaMiddleware.run(rootSaga)
-
 
 // Map Redux state to component props
 function mapCounterStateToProps(state) {
