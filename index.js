@@ -4,9 +4,9 @@ import PropTypes from 'prop-types'
 import ReactDOM from 'react-dom'
 import { createStore, combineReducers, applyMiddleware } from 'redux'
 import { Provider, connect } from 'react-redux'
+import createSagaMiddleware from 'redux-saga'
+import { call, put, fork, takeEvery } from 'redux-saga/effects'
 import request from 'superagent'
-import createSagaMiddleware from "redux-saga"
-import { call, put, fork, takeEvery } from 'redux-saga/effects';
 
 // React component
 class Counter extends Component {
@@ -24,17 +24,18 @@ class Counter extends Component {
 
 Counter.propTypes = {
   value: PropTypes.number.isRequired,
-  onIncreaseClick: PropTypes.func.isRequired
+  onIncreaseClick: PropTypes.func.isRequired,
+  onDecreaseClick: PropTypes.func.isRequired,
 }
 
 class Clock extends Component {
   render() {
-    const { time, onClick } = this.props
+    const { time, onClickForTime } = this.props
 
     return(
       <div>
         <span>{time}</span>
-        <button onClick={onClick}>GET CURRENT TIME</button>
+        <button onClick={onClickForTime}>GET CURRENT TIME</button>
       </div>
     )
   }
@@ -42,15 +43,15 @@ class Clock extends Component {
 
 Clock.propTypes = {
   time: PropTypes.string.isRequired,
-  onClick: PropTypes.func.isRequired
+  onClickForTime: PropTypes.func.isRequired
 }
 
-// Counter Action
+// Counter Action Creater
 const increaseAction = { type: 'increase' }
 const decreaseAction = { type: 'decrease' }
 
-// Clock Action
-const getCurrentTimeAction = { type: 'getjson' }
+// Clock Action Creater
+const getCurrentTimeAction = { type: 'manage_api' }
 
 // Reducer
 function counter(state = { count: 0 }, action) {
@@ -66,10 +67,9 @@ function counter(state = { count: 0 }, action) {
 }
 
 function clock(state = { time: 'YYYY-MM-DD' }, action) {
-  console.log(action)
   switch (action.type) {
-    case 'gettime':
-      return { time: action.body }
+    case 'get_current_time':
+      return { time: action.result.time }
     default:
       return state
   }
@@ -80,7 +80,7 @@ const reducer = combineReducers({
                   counter
                 })
 
-// Store with Sage
+// Store with Saga
 const sagaMiddleware = createSagaMiddleware();
 const store = createStore(
   reducer,
@@ -88,20 +88,20 @@ const store = createStore(
   applyMiddleware(sagaMiddleware)
 );
 
-function checkoutSuccess(body) {
+function checkoutSuccess(result) {
   return {
-    type: 'gettime',
-    body
+    type: 'get_current_time',
+    result
   }
 }
 
 function* runCurrentTimeRequest(action) {
   const response = yield call(request.get, 'http://date.jsontest.com/')
-  yield put(checkoutSuccess(response.body.time))
+  yield put(checkoutSuccess(response.body))
 }
 
 function* handleCurrentTime() {
-  yield takeEvery('getjson', runCurrentTimeRequest)
+  yield takeEvery('manage_api', runCurrentTimeRequest)
 }
 
 function* rootSaga() {
@@ -135,7 +135,7 @@ function mapClockStateToProps(state) {
 // Map Redux actions to component props
 function mapClockDispatchToProps(dispatch) {
   return {
-    onClick: () => dispatch(getCurrentTimeAction)
+    onClickForTime: () => dispatch(getCurrentTimeAction)
   }
 }
 
